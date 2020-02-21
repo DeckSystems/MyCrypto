@@ -50,7 +50,7 @@ const swapFlowInitialState = {
   txReceipt: undefined,
   initialToAmount: undefined,
   exchangeRate: undefined,
-  slippageRate: undefined
+  markup: undefined
 };
 
 const SwapFlowFactory: TUseStateReducerFactory<SwapState> = ({ state, setState }) => {
@@ -161,14 +161,21 @@ const SwapFlowFactory: TUseStateReducerFactory<SwapState> = ({ state, setState }
         swapPrice: price,
         initialToAmount: commissionIncreasedAmount,
         exchangeRate: trimBN(formatEther(divideBNFloats(1, price).toString())),
-        slippageRate: trimBN(
-          formatEther(
-            divideBNFloats(
-              trimBN(formatEther(divideBNFloats(1, price).toString())),
-              trimBN(formatEther(divideBNFloats(1, costBasis).toString()))
-            ).toString()
-          )
-        )
+        markup: (
+          1 -
+          parseFloat(
+            trimBN(
+              formatEther(
+                divideBNFloats(
+                  trimBN(formatEther(divideBNFloats(1, price).toString())),
+                  trimBN(formatEther(divideBNFloats(1, costBasis).toString()))
+                ).toString()
+              ),
+              10
+            )
+          ) *
+            100
+        ).toString()
       }));
     } catch (e) {
       if (!e.isCancel) {
@@ -233,7 +240,10 @@ const SwapFlowFactory: TUseStateReducerFactory<SwapState> = ({ state, setState }
         swapPrice: price,
         initialToAmount: trimBN(formatEther(multiplyBNFloats(value, price).toString())),
         exchangeRate: price.toString(),
-        slippageRate: trimBN(formatEther(divideBNFloats(price, costBasis).toString()))
+        markup: (
+          1 -
+          parseFloat(trimBN(formatEther(divideBNFloats(price, costBasis).toString()), 10)) * 100
+        ).toString()
       }));
     } catch (e) {
       if (!e.isCancel) {

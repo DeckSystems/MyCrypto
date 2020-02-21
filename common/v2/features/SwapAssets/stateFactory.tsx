@@ -1,4 +1,5 @@
 import { useContext } from 'react';
+import { formatEther } from 'ethers/utils';
 
 import translate from 'v2/translations';
 import {
@@ -28,7 +29,6 @@ import {
   makeAllowanceTransaction,
   makeTradeTransactionFromDexTrade
 } from './helpers';
-import { formatEther } from 'ethers/utils';
 
 const swapFlowInitialState = {
   assets: [],

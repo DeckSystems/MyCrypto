@@ -13,7 +13,10 @@ export {
   convertToFiat,
   convertToFiatFromAsset,
   weiToFloat,
-  convert,
+  convertToBN,
+  divideBNFloats,
+  multiplyBNFloats,
+  trimBN,
   withCommission
 } from './convert';
 export { isArrayEqual } from './isArrayEqual';

@@ -5,8 +5,11 @@ import {
   TUseStateReducerFactory,
   fromTxReceiptObj,
   formatErrorEmailMarkdown,
-  convert,
-  withCommission
+  convertToBN,
+  multiplyBNFloats,
+  divideBNFloats,
+  withCommission,
+  trimBN
 } from 'v2/utils';
 import {
   DexService,
@@ -25,6 +28,7 @@ import {
   makeAllowanceTransaction,
   makeTradeTransactionFromDexTrade
 } from './helpers';
+import { formatEther } from 'ethers/utils';
 
 const swapFlowInitialState = {
   assets: [],
@@ -133,10 +137,12 @@ const SwapFlowFactory: TUseStateReducerFactory<SwapState> = ({ state, setState }
         isCalculatingFromAmount: true
       }));
 
-      const commissionIncreasedAmount = withCommission({
-        amount: convert(Number(value)),
-        rate: MYC_DEXAG_COMMISSION_RATE
-      });
+      const commissionIncreasedAmount = trimBN(
+        withCommission({
+          amount: convertToBN(Number(value)),
+          rate: MYC_DEXAG_COMMISSION_RATE
+        }).toString()
+      );
 
       const { price, costBasis } = await DexService.instance.getTokenPriceTo(
         fromAsset.symbol,
@@ -147,13 +153,22 @@ const SwapFlowFactory: TUseStateReducerFactory<SwapState> = ({ state, setState }
       setState((prevState: SwapState) => ({
         ...prevState,
         isCalculatingFromAmount: false,
-        fromAmount: convert(commissionIncreasedAmount, price).toString(),
+        fromAmount: trimBN(
+          formatEther(multiplyBNFloats(commissionIncreasedAmount, price).toString())
+        ),
         fromAmountError: '',
         toAmountError: '',
         swapPrice: price,
         initialToAmount: commissionIncreasedAmount,
-        exchangeRate: 1 / price,
-        slippageRate: 1 / price / (1 / costBasis)
+        exchangeRate: trimBN(formatEther(divideBNFloats(1, price).toString())),
+        slippageRate: trimBN(
+          formatEther(
+            divideBNFloats(
+              trimBN(formatEther(divideBNFloats(1, price).toString())),
+              trimBN(formatEther(divideBNFloats(1, costBasis).toString()))
+            ).toString()
+          )
+        )
       }));
     } catch (e) {
       if (!e.isCancel) {
@@ -209,16 +224,16 @@ const SwapFlowFactory: TUseStateReducerFactory<SwapState> = ({ state, setState }
         ...prevState,
         isCalculatingToAmount: false,
         toAmount: withCommission({
-          amount: convert(Number(value), price),
+          amount: multiplyBNFloats(value, price),
           rate: MYC_DEXAG_COMMISSION_RATE,
           substract: true
         }).toString(),
         fromAmountError: '',
         toAmountError: '',
         swapPrice: price,
-        initialToAmount: Number(value) * price,
-        exchangeRate: price,
-        slippageRate: price / costBasis
+        initialToAmount: trimBN(formatEther(multiplyBNFloats(value, price).toString())),
+        exchangeRate: price.toString(),
+        slippageRate: trimBN(formatEther(divideBNFloats(price, costBasis).toString()))
       }));
     } catch (e) {
       if (!e.isCancel) {
